@@ -267,3 +267,48 @@ a { color: inherit; text-decoration: none; }
   opacity: 0;
   transform: translateY(-6px);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   移动端通用调整
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* 字号略小 */
+  html, body { font-size: 13.5px; }
+
+  /* 卡片 padding 收紧 */
+  .n-card .n-card__content { padding: 16px !important; }
+  .n-card .n-card-header { padding: 14px 16px !important; }
+
+  /* 表单 form-row 改为垂直，label 不再占固定宽度 */
+  .form-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+  .form-label {
+    width: auto !important;
+    flex-shrink: 1 !important;
+  }
+
+  /* 表格容器 horizontal scroll（NDataTable 自带，再加保险）*/
+  .n-data-table {
+    overflow-x: auto !important;
+  }
+
+  /* 标题字号统一缩 */
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 18px !important; }
+  h3 { font-size: 15px !important; }
+
+  /* NGrid 强制单列（NGrid 的 responsive 属性如果没覆盖到时兜底）*/
+  .stack-mobile {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 极窄屏：再紧凑些 */
+  .n-card .n-card__content { padding: 12px !important; }
+  .n-card .n-card-header { padding: 10px 12px !important; }
+}

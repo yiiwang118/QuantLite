@@ -2,6 +2,15 @@
 
 按 phase 倒序排列。
 
+## Phase 8：移动端适配 + 小程序规划
+
+- **AppLayout 移动端 drawer**：< 768px 时 sider 隐藏，topbar 加 hamburger 按钮，点击滑出 sider + 遮罩，菜单选中后自动关闭
+- **topbar 紧凑**：小屏隐藏用户名只剩头像，padding 收紧，标题截断
+- **Lab.vue 移动端**：chat-thread 65vh→55vh，气泡 max-width 92%，字号/padding 收紧，detail-row 限高 140px
+- **Settings 移动端**：model-row-head 改纵向布局，input 占满宽
+- **全局 form-row**：< 768px 自动改纵向，label 不占固定宽度
+- **小程序 docs**：`docs/06-miniprogram.md` 锁定 uni-app + Vue 3 技术栈，V1 范围（登录/聊天/策略/回测），SSE → WebSocket 适配方案，分阶段实施，**待启动信号**
+
 ## Phase 7：扩股票池 + 交易成本 + 多空
 
 - **新 universe**：`cn:csi300`（沪深 300 全成分，akshare 实时拉）+ `us:nasdaq100`（100 只主流科技/消费/医药/工业）

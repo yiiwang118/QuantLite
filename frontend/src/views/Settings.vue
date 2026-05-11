@@ -388,6 +388,16 @@ const totalConfigured = computed(() =>
   margin-bottom: 12px;
   background: var(--surface-1);
 }
+
+@media (max-width: 768px) {
+  .model-row { padding: 12px; }
+  .model-row :deep(.n-input) { width: 100% !important; }
+  .model-row-head {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+}
 .model-row-head {
   display: flex;
   align-items: center;

@@ -956,8 +956,23 @@ onActivated(() => {
   margin: 0 auto;
 }
 @media (max-width: 1100px) {
-  .ai-page { grid-template-columns: 1fr; }
+  .ai-page { grid-template-columns: 1fr; gap: 12px; }
   .ai-aside { order: -1; }
+}
+@media (max-width: 768px) {
+  .ai-page { gap: 10px; }
+  .ai-header h1 { font-size: 22px !important; }
+  .chat-thread { max-height: 55vh; gap: 12px; }
+  .user-bubble { max-width: 92% !important; }
+  .chat-empty { padding: 36px 16px; }
+  .chat-empty h2 { font-size: 18px; }
+  .empty-icon { width: 56px; height: 56px; }
+  .suggested-prompts { gap: 6px; }
+  .prompt-chip { font-size: 11.5px; padding: 6px 11px; }
+  .assistant-text, .user-bubble .bubble-text { font-size: 13px; }
+  .chat-input { padding: 10px; border-radius: 12px; }
+  .tool-detail .detail-row pre { max-height: 140px; font-size: 10.5px; }
+  .excess-value { font-size: 22px; }
 }
 
 .ai-main {

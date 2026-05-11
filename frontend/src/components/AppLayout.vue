@@ -7,7 +7,7 @@ import {
   GridOutline, ListOutline, CloudDownloadOutline, LogOutOutline,
   TrendingUpOutline, EllipsisHorizontal, FlaskOutline, LibraryOutline,
   TimeOutline, SettingsOutline, SparklesOutline, LanguageOutline,
-  SunnyOutline, MoonOutline, DesktopOutline,
+  SunnyOutline, MoonOutline, DesktopOutline, MenuOutline, CloseOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
@@ -69,8 +69,17 @@ const currentPageTitle = computed(() => {
   return key ? t(key) : (route.meta?.title as string || '')
 })
 
+// 移动端 sider drawer 状态
+const mobileMenuOpen = ref(false)
+const isMobile = ref(window.innerWidth < 768)
+window.addEventListener('resize', () => {
+  isMobile.value = window.innerWidth < 768
+  if (!isMobile.value) mobileMenuOpen.value = false
+})
+
 function onMenuSelect(key: string) {
   router.push({ name: key })
+  if (isMobile.value) mobileMenuOpen.value = false   // 移动端选中后自动关闭
 }
 
 // ─── 用户菜单 ───
@@ -126,7 +135,12 @@ onMounted(async () => {
 
 <template>
   <NLayout has-sider style="height: 100vh">
-    <NLayoutSider bordered :width="240" content-style="display: flex; flex-direction: column">
+    <!-- 移动端遮罩层 -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
+
+    <NLayoutSider bordered :width="240"
+      content-style="display: flex; flex-direction: column"
+      :class="{ 'sider-mobile-open': mobileMenuOpen }">
       <div class="brand">
         <div class="brand-logo">
           <NIcon size="22" color="white"><TrendingUpOutline /></NIcon>
@@ -156,6 +170,13 @@ onMounted(async () => {
     <NLayout style="background: transparent">
       <NLayoutHeader class="topbar">
         <div class="topbar-left">
+          <!-- 移动端 hamburger -->
+          <NButton class="mobile-menu-btn" quaternary circle size="small"
+            @click="mobileMenuOpen = !mobileMenuOpen">
+            <template #icon>
+              <NIcon size="20"><component :is="mobileMenuOpen ? CloseOutline : MenuOutline" /></NIcon>
+            </template>
+          </NButton>
           <div class="topbar-title">{{ currentPageTitle }}</div>
           <NTag v-if="route.meta?.hidden" size="small" :bordered="false"
             :style="{ background: 'var(--accent-bg-soft)', color: 'var(--accent)' }">
@@ -301,5 +322,67 @@ onMounted(async () => {
   background: var(--surface-1);
   border: 1px solid var(--border-soft);
   color: var(--text-primary);
+}
+
+/* ─── 移动端 ──────────────────────────────────────── */
+
+.mobile-menu-btn { display: none; }
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: inline-flex; }
+
+  /* sider 变 drawer */
+  :deep(.n-layout-sider) {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.30);
+  }
+  :deep(.n-layout-sider.sider-mobile-open) {
+    transform: translateX(0);
+  }
+
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+  .topbar-title {
+    font-size: 15px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 用户名隐藏，只剩头像 */
+  .user-chip {
+    padding: 2px;
+    gap: 0;
+    border: none;
+    background: transparent;
+  }
+  .user-chip :deep(.n-text) { display: none; }
+
+  :deep(.n-layout-content) { padding: 16px !important; }
+  :deep(.n-layout-content > .n-scrollbar-content) { padding: 16px !important; }
+
+  .brand { padding: 16px 16px 12px; }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 0 8px; }
+  .topbar-title { font-size: 14px; max-width: 100px; }
+  :deep(.n-button) { padding: 0 8px !important; }
 }
 </style>
