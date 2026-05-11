@@ -301,4 +301,34 @@ const reversedCandles = computed(() => {
   flex: 1;
   min-width: 0;
 }
+
+/* ─── 移动端 ─── */
+@media (max-width: 768px) {
+  .page-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .symbol-title { font-size: 20px; }
+  .page-head :deep(.n-button) { font-size: 12px; }
+
+  .summary-bar :deep(.n-card__content) { padding: 14px !important; }
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .metric-divider { display: none; }
+  .metric-value { font-size: 18px; }
+  .metric-label { font-size: 10px; }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .meta-card { flex: 1; }
+
+  /* K线高度收紧 */
+  :deep(.k-line-chart) { height: 360px !important; }
+  /* 数据表格 horizontal-scroll */
+  :deep(.n-data-table) { overflow-x: auto !important; }
+}
 </style>

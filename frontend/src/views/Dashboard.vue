@@ -345,6 +345,54 @@ const marketCols = [
   letter-spacing: -0.01em;
 }
 
+/* ─── 移动端 ─── */
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .hero-title h1 {
+    font-size: 22px !important;
+    margin-bottom: 0;
+  }
+  .section-title {
+    margin: 20px 0 10px;
+    font-size: 14px;
+  }
+  .market-card-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .market-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .big-num {
+    font-size: 17px;
+  }
+  .market-card-chart {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .market-card-chart :deep(svg) {
+    width: 100% !important;
+    max-width: 280px;
+    height: 56px;
+  }
+  .meta-value { font-size: 15px; }
+  .meta-label { font-size: 10px; }
+  /* 详细对比表强制 horizontal scroll */
+  :deep(.n-data-table) {
+    overflow-x: auto !important;
+  }
+  :deep(.n-data-table-wrapper) { min-width: 600px; }
+}
+
 .market-cell {
   display: flex;
   align-items: center;

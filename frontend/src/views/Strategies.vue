@@ -135,8 +135,43 @@ const columns = [
         </NButton>
       </NSpace>
     </template>
-    <NDataTable :columns="columns" :data="rows" :loading="loading"
-      :bordered="false" :pagination="{ pageSize: 30 }" size="small" :striped="true" />
+    <!-- 桌面：表格 -->
+    <div class="desktop-only">
+      <NDataTable :columns="columns" :data="rows" :loading="loading"
+        :bordered="false" :pagination="{ pageSize: 30 }" size="small" :striped="true" />
+    </div>
+
+    <!-- 移动：卡片列表 -->
+    <div class="mobile-only strategy-cards">
+      <div v-for="r in rows" :key="r.id" class="strategy-card">
+        <div class="sc-head">
+          <span class="muted mono" style="font-size: 11px">#{{ r.id }}</span>
+          <span class="sc-name mono">{{ r.name }}</span>
+        </div>
+        <div class="sc-meta">
+          <span>{{ r.created_by }}</span>
+          <span class="muted">·</span>
+          <NTime :time="new Date(r.updated_at + 'Z')" type="relative" />
+          <span class="muted">·</span>
+          <span class="mono">{{ r.dsl.length }} 字符</span>
+        </div>
+        <div class="sc-actions">
+          <NButton size="small" type="primary" tertiary @click="openInLab(r)">
+            <template #icon><NIcon><FlaskOutline /></NIcon></template>
+            打开
+          </NButton>
+          <NPopconfirm @positive-click="del(r.id, r.name)">
+            <template #trigger>
+              <NButton size="small" type="error" tertiary>
+                <template #icon><NIcon><TrashOutline /></NIcon></template>
+              </NButton>
+            </template>
+            确定删除「{{ r.name }}」？
+          </NPopconfirm>
+        </div>
+      </div>
+    </div>
+
     <NEmpty v-if="!loading && rows.length === 0"
       description="还没有保存的策略。去「策略实验室」跑一次回测后点「保存策略」。"
       style="padding: 60px 0">
@@ -146,3 +181,54 @@ const columns = [
     </NEmpty>
   </NCard>
 </template>
+
+<style scoped>
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+  :deep(.n-card-header) { flex-wrap: wrap; gap: 8px !important; }
+  :deep(.n-card-header__extra) { width: 100%; }
+  :deep(.n-card-header__extra .n-space) { width: 100%; flex-direction: column; }
+  :deep(.n-card-header__extra .n-button) { width: 100%; }
+}
+
+.strategy-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.strategy-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+}
+.sc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sc-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sc-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+</style>

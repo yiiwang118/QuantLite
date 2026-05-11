@@ -153,10 +153,116 @@ const columns = [
         刷新
       </NButton>
     </template>
-    <NDataTable :columns="columns" :data="rows" :loading="loading"
-      :bordered="false" :pagination="{ pageSize: 30 }" size="small" :striped="true" />
+    <!-- 桌面：表格 -->
+    <div class="desktop-only">
+      <NDataTable :columns="columns" :data="rows" :loading="loading"
+        :bordered="false" :pagination="{ pageSize: 30 }" size="small" :striped="true" />
+    </div>
+
+    <!-- 移动：卡片列表 -->
+    <div class="mobile-only bt-cards">
+      <div v-for="r in rows" :key="r.id" class="bt-card"
+        @click="router.push({ name: 'lab', query: { backtest_id: r.id } })">
+        <div class="bt-head">
+          <span class="mono bt-id">#{{ r.id }}</span>
+          <NTag :type="r.params.universe?.startsWith('cn') ? 'error' : 'info'"
+            size="small" :bordered="false">
+            {{ r.params.universe || '?' }}
+          </NTag>
+          <span class="mono bt-cfg">
+            top {{ r.params.top_n }}{{ r.params.bottom_n ? `/bot ${r.params.bottom_n}` : '' }}
+            · {{ r.params.rebalance }}
+          </span>
+        </div>
+        <div class="bt-name mono" v-if="r.strategy_name">{{ r.strategy_name }}</div>
+        <div class="bt-name muted" style="font-style: italic" v-else>即席回测</div>
+        <div class="bt-metrics">
+          <div class="bt-metric">
+            <div class="muted bt-mlabel">累计</div>
+            <div class="mono bt-mvalue" :class="r.metrics.cum_return >= 0 ? 'up' : 'down'">
+              {{ r.metrics.cum_return >= 0 ? '+' : '' }}{{ (r.metrics.cum_return * 100).toFixed(2) }}%
+            </div>
+          </div>
+          <div class="bt-metric">
+            <div class="muted bt-mlabel">夏普</div>
+            <div class="mono bt-mvalue">{{ r.metrics.sharpe.toFixed(2) }}</div>
+          </div>
+          <div class="bt-metric">
+            <div class="muted bt-mlabel">回撤</div>
+            <div class="mono bt-mvalue down">−{{ (r.metrics.max_drawdown * 100).toFixed(2) }}%</div>
+          </div>
+        </div>
+        <div class="bt-foot muted">
+          <span>{{ r.created_by }}</span>
+          <span>·</span>
+          <NTime :time="new Date(r.created_at + 'Z')" type="relative" />
+        </div>
+      </div>
+    </div>
+
     <NEmpty v-if="!loading && rows.length === 0"
       description="还没有回测记录。去「策略实验室」点「保存策略」会留下一条。"
       style="padding: 60px 0" />
   </NCard>
 </template>
+
+<style scoped>
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+  :deep(.n-card-header) { flex-wrap: wrap; gap: 8px !important; }
+  :deep(.n-card-header__extra) { width: 100%; }
+  :deep(.n-card-header__extra .n-button) { width: 100%; }
+}
+
+.bt-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bt-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.bt-card:active {
+  transform: scale(0.99);
+  border-color: var(--border-accent);
+}
+.bt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bt-id { font-weight: 600; }
+.bt-cfg { font-size: 11px; color: var(--text-muted); }
+.bt-name {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+.bt-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.bt-metric { text-align: center; }
+.bt-mlabel { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.bt-mvalue { font-size: 14px; font-weight: 600; margin-top: 2px; }
+.bt-foot {
+  margin-top: 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>

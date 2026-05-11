@@ -3,7 +3,7 @@ import { onActivated, onMounted, ref, h, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   NCard, NDataTable, NTag, NSpace, NSelect, NInput, NButton, NIcon,
-  NEmpty, NTime, useMessage
+  NEmpty, NTime, NPagination, useMessage
 } from 'naive-ui'
 import { RefreshOutline, SearchOutline, OpenOutline } from '@vicons/ionicons5'
 import { type SymbolRow, AuthRequired } from '@/api/client'
@@ -62,6 +62,21 @@ const filtered = computed(() => {
     r => r.symbol.toLowerCase().includes(s) || r.name.toLowerCase().includes(s)
   )
 })
+
+// 移动端分页（桌面用 NDataTable 自带分页）
+const mobilePage = ref(1)
+const mobilePageSize = 20
+const mobilePageData = computed(() =>
+  filtered.value.slice(
+    (mobilePage.value - 1) * mobilePageSize,
+    mobilePage.value * mobilePageSize,
+  )
+)
+watch(filtered, () => { mobilePage.value = 1 })
+
+function goDetail(r: SymbolRow) {
+  router.push({ name: 'symbol-detail', params: { market: r.market, symbol: r.symbol } })
+}
 
 function fmtSize(bytes: number) {
   if (!bytes) return '-'
@@ -143,9 +158,9 @@ const columns = [
       </div>
     </template>
     <template #header-extra>
-      <NSpace>
-        <NSelect v-model:value="market" :options="marketOptions" style="width: 150px" />
-        <NInput v-model:value="search" placeholder="搜索 symbol / 名称" clearable style="width: 240px">
+      <NSpace class="filter-bar">
+        <NSelect v-model:value="market" :options="marketOptions" class="filter-select" />
+        <NInput v-model:value="search" placeholder="搜索 symbol / 名称" clearable class="filter-input">
           <template #prefix>
             <NIcon><SearchOutline /></NIcon>
           </template>
@@ -157,11 +172,49 @@ const columns = [
       </NSpace>
     </template>
 
-    <NDataTable
-      :columns="columns" :data="filtered" :loading="loading"
-      :bordered="false" :pagination="{ pageSize: 20 }" :striped="true" size="small"
-      :row-class-name="() => 'symbol-row'"
-    />
+    <!-- 桌面端：表格 -->
+    <div class="desktop-only">
+      <NDataTable
+        :columns="columns" :data="filtered" :loading="loading"
+        :bordered="false" :pagination="{ pageSize: 20 }" :striped="true" size="small"
+        :row-class-name="() => 'symbol-row'"
+      />
+    </div>
+
+    <!-- 移动端：卡片列表 -->
+    <div class="mobile-only mobile-list">
+      <div v-for="r in mobilePageData" :key="`${r.market}/${r.symbol}`"
+        class="mobile-symbol-card" @click="goDetail(r)">
+        <div class="msc-head">
+          <NTag :type="r.market === 'cn' ? 'error' : 'info'" :bordered="false" size="small">
+            {{ r.market.toUpperCase() }}
+          </NTag>
+          <span class="msc-symbol mono">{{ r.symbol }}</span>
+          <NTag v-if="r.status !== 'active'" size="small" :bordered="false" type="warning">
+            {{ r.status }}
+          </NTag>
+        </div>
+        <div class="msc-name">{{ r.name }}</div>
+        <div class="msc-spark" v-if="sparks[`${r.market}/${r.symbol}`]">
+          <Sparkline :data="sparks[`${r.market}/${r.symbol}`]" :market="r.market"
+            :width="220" :height="36" />
+        </div>
+        <div class="msc-meta">
+          <span class="mono">{{ r.rows || 0 }} 行</span>
+          <span class="muted">·</span>
+          <span class="mono">{{ fmtSize(r.size_bytes || 0) }}</span>
+          <span class="muted" v-if="r.last_fetched_at">·</span>
+          <span class="muted mono" v-if="r.last_fetched_at">
+            <NTime :time="new Date(r.last_fetched_at)" :to="new Date()" type="relative" />
+          </span>
+        </div>
+      </div>
+      <div v-if="filtered.length > mobilePageSize" class="mobile-pagination">
+        <NPagination v-model:page="mobilePage" :page-count="Math.ceil(filtered.length / mobilePageSize)"
+          :page-slot="5" size="small" />
+      </div>
+    </div>
+
     <NEmpty v-if="!loading && rows.length === 0"
       description="还没有 symbols。请先去『数据操作』拉数据" style="padding: 60px 0" />
   </NCard>
@@ -172,5 +225,87 @@ const columns = [
 :deep(.n-data-table-td) {
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.filter-select { width: 150px; }
+.filter-input { width: 240px; }
+
+/* 默认（桌面）：只显示 desktop，隐藏 mobile */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+
+  /* filter 占满宽，按钮纵向 */
+  .filter-bar { width: 100%; flex-direction: column !important; gap: 8px !important; }
+  .filter-bar :deep(.n-space-item) { width: 100%; }
+  .filter-select, .filter-input { width: 100% !important; }
+  .filter-bar :deep(.n-button) { width: 100%; }
+
+  /* 卡片头部允许换行 */
+  :deep(.n-card-header) { flex-wrap: wrap; gap: 8px !important; }
+  :deep(.n-card-header__extra) { width: 100%; }
+}
+
+.mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mobile-symbol-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.mobile-symbol-card:active {
+  transform: scale(0.99);
+  border-color: var(--border-accent);
+}
+.msc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msc-symbol {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.msc-name {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msc-spark {
+  margin: 8px 0 4px;
+  display: flex;
+  justify-content: center;
+}
+.msc-spark :deep(svg) {
+  width: 100% !important;
+  max-width: 320px;
+}
+.msc-meta {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mobile-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
 }
 </style>

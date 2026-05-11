@@ -337,4 +337,29 @@ const resultColumns = [
   background: var(--surface-1);
   border: 1px solid var(--border-soft);
 }
+
+/* ─── 移动端 ─── */
+@media (max-width: 768px) {
+  .job-row { padding: 10px 12px; }
+  .job-row-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .job-row-main :deep(.n-button) { width: 100%; }
+
+  .ops-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  /* 按钮组纵向占满 */
+  :deep(.n-card .n-space) { gap: 8px !important; }
+  :deep(.market-ops .n-space) { flex-direction: column; align-items: stretch; }
+  :deep(.market-ops .n-button) { width: 100%; }
+
+  /* 操作日志表格 horizontal scroll */
+  :deep(.n-data-table) { overflow-x: auto !important; }
+  .log-item { padding: 10px 12px; font-size: 12px; }
+}
 </style>
