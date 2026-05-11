@@ -20,17 +20,17 @@ const html = computed(() => {
 .md {
   color: var(--text-primary);
   font-size: 13.5px;
-  line-height: 1.7;
+  line-height: 1.55;
 }
 
 .md :deep(h1),
 .md :deep(h2),
 .md :deep(h3),
 .md :deep(h4) {
-  margin: 16px 0 8px;
+  margin: 10px 0 4px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--text-primary);
 }
 .md :deep(h1) { font-size: 19px; }
@@ -38,8 +38,10 @@ const html = computed(() => {
 .md :deep(h3) { font-size: 14px; }
 .md :deep(h4) { font-size: 13px; }
 .md :deep(:first-child) { margin-top: 0; }
+.md :deep(:last-child) { margin-bottom: 0; }
 
-.md :deep(p) { margin: 8px 0; }
+.md :deep(p) { margin: 4px 0; }
+.md :deep(p + p) { margin-top: 8px; }
 
 .md :deep(strong) {
   font-weight: 600;
@@ -79,20 +81,26 @@ const html = computed(() => {
 
 .md :deep(ul),
 .md :deep(ol) {
-  margin: 8px 0;
+  margin: 4px 0;
   padding-left: 22px;
 }
 .md :deep(li) {
-  margin: 4px 0;
+  margin: 2px 0;
+}
+.md :deep(li > p) {
+  margin: 0;
 }
 
 .md :deep(blockquote) {
-  margin: 10px 0;
-  padding: 6px 14px;
+  margin: 6px 0;
+  padding: 4px 12px;
   border-left: 3px solid var(--border-accent);
   background: var(--accent-bg-soft);
   color: var(--text-secondary);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
+}
+.md :deep(blockquote > p) {
+  margin: 2px 0;
 }
 
 .md :deep(hr) {

@@ -68,8 +68,13 @@ export default {
     runBacktest: 'Run backtest',
     saveStrategy: 'Save strategy',
     syntaxOK: 'syntax OK',
+    jumpToBottom: 'Jump to latest',
   },
   topbar: {
+    theme: 'Theme',
+    themeAuto: 'Auto',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     language: 'Language',
     logout: 'Log out',
   },

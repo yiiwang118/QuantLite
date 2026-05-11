@@ -68,8 +68,13 @@ export default {
     runBacktest: '运行回测',
     saveStrategy: '保存策略',
     syntaxOK: '语法 OK',
+    jumpToBottom: '回到最新',
   },
   topbar: {
+    theme: '主题',
+    themeAuto: '跟随系统',
+    themeLight: '浅色',
+    themeDark: '深色',
     language: '语言',
     logout: '退出登录',
   },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, inject, onMounted, ref, type Ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NIcon } from 'naive-ui'
@@ -7,6 +7,7 @@ import {
   GridOutline, ListOutline, CloudDownloadOutline, LogOutOutline,
   TrendingUpOutline, EllipsisHorizontal, FlaskOutline, LibraryOutline,
   TimeOutline, SettingsOutline, SparklesOutline, LanguageOutline,
+  SunnyOutline, MoonOutline, DesktopOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
@@ -16,6 +17,13 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const { t, locale } = useI18n()
+
+type ThemeMode = 'auto' | 'dark' | 'light'
+const themeControl = inject<{
+  userTheme: Ref<ThemeMode>
+  setTheme: (t: ThemeMode) => void
+  isDark: Ref<boolean>
+}>('theme-control')!
 
 const iconMap: Record<string, any> = {
   grid: GridOutline,
@@ -90,6 +98,20 @@ function onLangAction(key: string) {
   setLocale(key as any)
 }
 
+// ─── 主题切换 ───
+const themeOptions = computed(() => [
+  { label: t('topbar.themeAuto'), key: 'auto', icon: () => h(NIcon, null, { default: () => h(DesktopOutline) }) },
+  { label: t('topbar.themeLight'), key: 'light', icon: () => h(NIcon, null, { default: () => h(SunnyOutline) }) },
+  { label: t('topbar.themeDark'), key: 'dark', icon: () => h(NIcon, null, { default: () => h(MoonOutline) }) },
+])
+function onThemeAction(key: string) {
+  themeControl.setTheme(key as ThemeMode)
+}
+const themeIcon = computed(() => {
+  if (themeControl.userTheme.value === 'auto') return DesktopOutline
+  return themeControl.isDark.value ? MoonOutline : SunnyOutline
+})
+
 // ─── 状态栏数据 ───
 const status = ref<{ symbols: number; size_mb: number } | null>(null)
 onMounted(async () => {
@@ -148,6 +170,12 @@ onMounted(async () => {
               {{ locale === 'en' ? 'EN' : '中文' }}
             </NButton>
           </NDropdown>
+          <!-- 主题切换 -->
+          <NDropdown :options="themeOptions" trigger="click" @select="onThemeAction" placement="bottom-end">
+            <NButton quaternary size="small" circle :title="t('topbar.theme')">
+              <template #icon><NIcon><component :is="themeIcon" /></NIcon></template>
+            </NButton>
+          </NDropdown>
           <!-- 用户 -->
           <div class="user-chip">
             <NAvatar :size="26" round
@@ -164,7 +192,8 @@ onMounted(async () => {
         </NSpace>
       </NLayoutHeader>
 
-      <NLayoutContent content-style="padding: 28px 32px; min-height: 0; overflow: auto"
+      <NLayoutContent class="main-content"
+        content-style="padding: 28px 32px; min-height: 0; overflow: auto; background: transparent"
         :native-scrollbar="false">
         <slot />
       </NLayoutContent>
@@ -183,12 +212,26 @@ onMounted(async () => {
 .brand-logo {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  border-radius: 12px;
+  background: var(--brand-grad);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
+  box-shadow:
+    0 1px 2px rgba(124, 58, 237, 0.20),
+    0 8px 24px rgba(124, 58, 237, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  position: relative;
+}
+.brand-logo::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: var(--brand-grad);
+  filter: blur(14px);
+  opacity: 0.35;
+  z-index: -1;
 }
 .brand-name {
   font-size: 17px;
@@ -197,10 +240,11 @@ onMounted(async () => {
   line-height: 1.1;
 }
 .brand-tagline {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-muted);
-  letter-spacing: 0.06em;
-  margin-top: 3px;
+  letter-spacing: 0.10em;
+  margin-top: 4px;
+  text-transform: uppercase;
 }
 
 .sider-status {
@@ -229,8 +273,12 @@ onMounted(async () => {
   justify-content: space-between;
   height: 64px;
   padding: 0 32px;
-  backdrop-filter: blur(14px);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .topbar-left {
   display: flex;

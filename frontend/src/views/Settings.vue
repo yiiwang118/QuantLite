@@ -199,12 +199,24 @@ const totalConfigured = computed(() =>
     <NSpin :show="loading">
       <NCard>
         <template #header>
-          <NSpace align="center" :size="10">
-            <NIcon size="18" color="#a78bfa"><SparklesOutline /></NIcon>
-            <span>AI 模型</span>
-            <NText depth="3" style="font-size: 12px; font-weight: 400">
-              {{ drafts.length }} 个模型 · {{ totalConfigured }} 已配置
-            </NText>
+          <NSpace align="center" :size="10" justify="space-between" style="width: 100%">
+            <NSpace align="center" :size="10">
+              <NIcon size="18" color="var(--accent)"><SparklesOutline /></NIcon>
+              <span>AI 模型</span>
+              <NText depth="3" style="font-size: 12px; font-weight: 400">
+                {{ drafts.length }} 个模型 · {{ totalConfigured }} 已配置
+              </NText>
+            </NSpace>
+            <NSpace :size="6">
+              <NButton size="small" type="primary" @click="addModel('openai')">
+                <template #icon><NIcon><AddCircleOutline /></NIcon></template>
+                添加 OpenAI 兼容
+              </NButton>
+              <NButton size="small" @click="addModel('anthropic')">
+                <template #icon><NIcon><AddCircleOutline /></NIcon></template>
+                添加 Anthropic
+              </NButton>
+            </NSpace>
           </NSpace>
         </template>
 

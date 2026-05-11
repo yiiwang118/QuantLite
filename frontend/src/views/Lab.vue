@@ -13,6 +13,7 @@ import {
   DocumentTextOutline, FolderOpenOutline, ChevronDownOutline, SparklesOutline,
   SettingsOutline, RefreshOutline, FlashOutline, SendOutline, StopOutline,
   CodeSlashOutline, PersonOutline, BulbOutline,
+  ChatbubblesOutline, TrashOutline,
 } from '@vicons/ionicons5'
 import {
   api, type BacktestResp, type ValidateResp, type StrategyRow,
@@ -94,6 +95,83 @@ const abortController = ref<AbortController | null>(null)
 const threadRef = ref<HTMLElement | null>(null)
 const expandedTools = ref<Record<string, boolean>>({})
 
+// ─── 会话历史 ───────────────────────────────────────────────
+interface ChatSessionMeta {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+const currentSessionId = ref<string>('')
+const sessions = ref<ChatSessionMeta[]>([])
+
+async function loadSessions() {
+  try {
+    const r = await api.get<{ sessions: ChatSessionMeta[] }>('/ai/sessions')
+    sessions.value = r.data.sessions
+  } catch {}
+}
+
+async function persistSession() {
+  if (messages.value.length === 0) return
+  const payload = { messages: messages.value }
+  try {
+    if (currentSessionId.value) {
+      await api.put(`/ai/sessions/${currentSessionId.value}`, payload)
+    } else {
+      const r = await api.post<{ id: string; title: string }>('/ai/sessions', payload)
+      currentSessionId.value = r.data.id
+    }
+    loadSessions()
+  } catch (e) {
+    console.warn('persist session failed', e)
+  }
+}
+
+async function loadSession(id: string) {
+  if (streaming.value) {
+    message.warning('请先停止当前对话')
+    return
+  }
+  try {
+    const r = await api.get<{ id: string; messages: ChatMessage[] }>(`/ai/sessions/${id}`)
+    messages.value = r.data.messages || []
+    currentSessionId.value = id
+    scrollToBottom()
+  } catch {}
+}
+
+function confirmDeleteSession(s: ChatSessionMeta) {
+  dialog.warning({
+    title: '删除会话',
+    content: `确定删除「${s.title}」吗？此操作不可撤销`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await api.delete(`/ai/sessions/${s.id}`)
+        if (currentSessionId.value === s.id) {
+          messages.value = []
+          currentSessionId.value = ''
+        }
+        loadSessions()
+      } catch {}
+    },
+  })
+}
+
+function formatSessionTime(s: string) {
+  // 后端用 datetime('now') 写的字符串是 'YYYY-MM-DD HH:MM:SS'（UTC），手动加 Z
+  const iso = s.includes('T') ? s : s.replace(' ', 'T') + 'Z'
+  const d = new Date(iso)
+  const diff = (Date.now() - d.getTime()) / 1000
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)} 天前`
+  return d.toLocaleDateString()
+}
+
 // 模型选择
 const aiStatus = ref<AIStatus | null>(null)
 const selectedModelId = ref<string>('')
@@ -154,7 +232,22 @@ async function runBacktest() {
 
 // ─── Chat / Agent ──────────────────────────────────────────
 
-function scrollToBottom() {
+// 滚动锁定：用户向上滑离底部后停止 auto-scroll；回到底部附近自动恢复
+const stickToBottom = ref(true)
+function onThreadScroll() {
+  const el = threadRef.value
+  if (!el) return
+  // 距离底部 < 60px 视为"贴底"
+  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+}
+function jumpToBottom() {
+  const el = threadRef.value
+  if (!el) return
+  el.scrollTop = el.scrollHeight
+  stickToBottom.value = true
+}
+function scrollToBottom(force = false) {
+  if (!force && !stickToBottom.value) return
   nextTick(() => {
     if (threadRef.value) {
       threadRef.value.scrollTop = threadRef.value.scrollHeight
@@ -187,7 +280,9 @@ async function send() {
   }
   messages.value.push(userMsg)
   input.value = ''
-  scrollToBottom()
+  // 用户发消息时主动跳底（即使之前他向上看过历史）
+  stickToBottom.value = true
+  scrollToBottom(true)
 
   // 2. assistant 占位
   const asstMsg: ChatMessage = {
@@ -279,6 +374,7 @@ async function send() {
     streaming.value = false
     abortController.value = null
     scrollToBottom()
+    persistSession()
   }
 }
 
@@ -294,6 +390,8 @@ function newChat() {
     return
   }
   messages.value = []
+  currentSessionId.value = ''
+  result.value = null
 }
 
 function describeTool(tc: ToolCallView): string {
@@ -403,13 +501,14 @@ onMounted(async () => {
       if (e instanceof AuthRequired) auth.requireLogin()
     }
   }
-  await Promise.all([loadStrategies(), validate(), loadAIStatus()])
+  await Promise.all([loadStrategies(), validate(), loadAIStatus(), loadSessions()])
 })
 
 // KeepAlive 下每次切回 Lab 重新拉一遍（用户可能刚改过 Settings 里的 label）
 onActivated(() => {
   loadAIStatus()
   loadStrategies()
+  loadSessions()
 })
 
 </script>
@@ -433,7 +532,8 @@ onActivated(() => {
       </div>
 
       <!-- 聊天线程 -->
-      <div ref="threadRef" class="chat-thread">
+      <div class="chat-area">
+        <div ref="threadRef" class="chat-thread" @scroll.passive="onThreadScroll">
         <!-- 空态 -->
         <div v-if="messages.length === 0" class="chat-empty">
           <div class="empty-icon">
@@ -498,27 +598,29 @@ onActivated(() => {
                 </div>
               </div>
 
-              <!-- 思考中（当前没出最终文本，并且没有运行中的工具）-->
-              <div v-if="msg.status === 'streaming' && !msg.text
-                && !msg.toolCalls.some(tc => tc.status === 'running')"
-                class="thinking-bubble">
-                <span class="thinking-dot" />
-                <span class="thinking-dot" />
-                <span class="thinking-dot" />
-                <span style="margin-left: 8px">
-                  {{ msg.thinking || t('lab.thinking') }}
-                  <span v-if="thinkingElapsed(msg) > 0" class="muted mono"
-                    style="font-size: 11px; margin-left: 6px">
-                    · {{ thinkingElapsed(msg) }}s
+              <!-- 思考中：thinking 文字为空时显示动画占位；有内容时用 Markdown 完整渲染 -->
+              <template v-if="msg.status === 'streaming' && !msg.text
+                && !msg.toolCalls.some(tc => tc.status === 'running')">
+                <div v-if="!msg.thinking" class="thinking-bubble">
+                  <span class="thinking-dot" />
+                  <span class="thinking-dot" />
+                  <span class="thinking-dot" />
+                  <span style="margin-left: 8px">
+                    {{ t('lab.thinking') }}
+                    <span v-if="thinkingElapsed(msg) > 0" class="muted mono"
+                      style="font-size: 11px; margin-left: 6px">
+                      · {{ thinkingElapsed(msg) }}s
+                    </span>
                   </span>
-                </span>
-              </div>
-
-              <!-- 中间 thinking 文字（在工具调用之间）-->
-              <div v-if="msg.thinking && msg.status === 'streaming' && msg.text === ''"
-                class="inline-thinking">
-                <Markdown :text="msg.thinking" />
-              </div>
+                </div>
+                <div v-else class="inline-thinking">
+                  <Markdown :text="msg.thinking" />
+                  <div v-if="thinkingElapsed(msg) > 0" class="muted mono"
+                    style="font-size: 11px; margin-top: 6px">
+                    {{ thinkingElapsed(msg) }}s
+                  </div>
+                </div>
+              </template>
 
               <!-- 最终文本（用 Markdown 渲染）-->
               <div v-if="msg.text" class="assistant-text">
@@ -533,6 +635,14 @@ onActivated(() => {
             </div>
           </div>
         </template>
+        </div>
+        <!-- 跳到最新（只在 streaming + 离开底部时显示）-->
+        <transition name="fade">
+          <button v-if="!stickToBottom && streaming" class="jump-to-bottom"
+            @click="jumpToBottom" :title="t('lab.jumpToBottom')">
+            <NIcon size="16"><ChevronDownOutline /></NIcon>
+          </button>
+        </transition>
       </div>
 
       <!-- 输入区 -->
@@ -725,6 +835,40 @@ onActivated(() => {
 
       <NCard size="small" style="margin-top: 12px">
         <template #header>
+          <NSpace align="center" :size="8" justify="space-between" style="width: 100%">
+            <NSpace align="center" :size="8">
+              <NIcon size="14"><ChatbubblesOutline /></NIcon>
+              <span style="font-size: 13px; font-weight: 600">会话历史</span>
+              <NTag v-if="sessions.length > 0" size="tiny" :bordered="false">
+                {{ sessions.length }}
+              </NTag>
+            </NSpace>
+            <NButton size="tiny" tertiary @click="newChat" :disabled="streaming">
+              <template #icon><NIcon><RefreshOutline /></NIcon></template>
+              新会话
+            </NButton>
+          </NSpace>
+        </template>
+
+        <div v-if="sessions.length === 0" class="aside-empty">
+          <NText depth="3" style="font-size: 12px">暂无历史会话</NText>
+        </div>
+        <div v-else style="max-height: 320px; overflow-y: auto; margin: 0 -4px;">
+          <div v-for="s in sessions" :key="s.id"
+            class="session-item" :class="{ 'session-active': currentSessionId === s.id }"
+            @click="loadSession(s.id)">
+            <div class="session-title">{{ s.title }}</div>
+            <div class="session-meta mono muted">{{ formatSessionTime(s.updated_at) }}</div>
+            <button class="session-del" :title="`删除「${s.title}」`"
+              @click.stop="confirmDeleteSession(s)">
+              <NIcon size="12"><TrashOutline /></NIcon>
+            </button>
+          </div>
+        </div>
+      </NCard>
+
+      <NCard size="small" style="margin-top: 12px">
+        <template #header>
           <NSpace align="center" :size="8">
             <NIcon size="14" color="#fbbf24"><BulbOutline /></NIcon>
             <span style="font-size: 13px; font-weight: 600">Agent 工具</span>
@@ -865,13 +1009,40 @@ onActivated(() => {
 }
 
 /* ─── 聊天线程 ─── */
+.chat-area {
+  position: relative;
+}
 .chat-thread {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   padding: 4px 2px;
   max-height: 65vh;
   overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.jump-to-bottom {
+  position: absolute;
+  right: 12px;
+  bottom: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  z-index: 5;
+}
+.jump-to-bottom:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-accent);
+  color: var(--accent);
 }
 .msg {
   display: flex;
@@ -897,8 +1068,8 @@ onActivated(() => {
   align-items: flex-end;
 }
 .user-bubble .bubble-text {
-  padding: 10px 14px;
-  border-radius: 14px 14px 4px 14px;
+  padding: 11px 15px;
+  border-radius: 16px 16px 4px 16px;
   background: var(--user-bubble-bg);
   border: 1px solid var(--user-bubble-border);
   color: var(--text-primary);
@@ -906,6 +1077,7 @@ onActivated(() => {
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
+  box-shadow: var(--shadow-sm);
 }
 
 .assistant-block {
@@ -1043,13 +1215,14 @@ onActivated(() => {
 
 /* ─── 最终消息 ─── */
 .assistant-text {
-  padding: 12px 14px;
-  border-radius: 14px 14px 14px 4px;
+  padding: 14px 16px;
+  border-radius: 16px 16px 16px 4px;
   background: var(--surface-1);
   border: 1px solid var(--border-soft);
   color: var(--text-primary);
   font-size: 13.5px;
   line-height: 1.65;
+  box-shadow: var(--shadow-sm);
 }
 
 .error-bubble {
@@ -1069,8 +1242,14 @@ onActivated(() => {
   gap: 10px;
   padding: 12px;
   border-radius: 14px;
-  background: var(--surface-1);
+  background: var(--card-bg);
   border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.chat-input:focus-within {
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-glow);
 }
 .chat-input :deep(.n-input) {
   background: transparent;
@@ -1243,4 +1422,53 @@ onActivated(() => {
 }
 .strategy-item:last-child { border-bottom: none; }
 .strategy-item:hover { color: var(--accent); }
+
+/* ─── 会话历史 ─── */
+.session-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  margin: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease;
+}
+.session-item:hover { background: var(--surface-1); }
+.session-active {
+  background: var(--accent-bg-soft);
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+.session-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 22px;
+}
+.session-meta {
+  font-size: 10px;
+  margin-top: 2px;
+}
+.session-del {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.session-item:hover .session-del { opacity: 1; }
+.session-del:hover { background: var(--danger-bg); color: var(--danger); }
 </style>

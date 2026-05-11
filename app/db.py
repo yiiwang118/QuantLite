@@ -17,7 +17,7 @@ from typing import Any, Iterator
 
 from app.config import settings
 
-CURRENT_DB_VERSION = 3
+CURRENT_DB_VERSION = 4
 
 
 SCHEMA_V1_FRESH = """
@@ -74,6 +74,17 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_by TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id TEXT PRIMARY KEY,
+    user TEXT NOT NULL,
+    title TEXT NOT NULL,
+    messages TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_updated
+    ON chat_sessions(user, updated_at DESC);
 """
 
 
@@ -101,6 +112,22 @@ def _migrate_v2_to_v3(conn: sqlite3.Connection) -> None:
             updated_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_by TEXT NOT NULL
         );
+    """)
+
+
+def _migrate_v3_to_v4(conn: sqlite3.Connection) -> None:
+    """加 chat_sessions 表（LiteAI 会话历史）。"""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+            id TEXT PRIMARY KEY,
+            user TEXT NOT NULL,
+            title TEXT NOT NULL,
+            messages TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_updated
+            ON chat_sessions(user, updated_at DESC);
     """)
 
 
@@ -135,9 +162,14 @@ def init_db() -> None:
         elif version == 1:
             _migrate_v1_to_v2(conn)
             _migrate_v2_to_v3(conn)
+            _migrate_v3_to_v4(conn)
             conn.execute(f"PRAGMA user_version = {CURRENT_DB_VERSION}")
         elif version == 2:
             _migrate_v2_to_v3(conn)
+            _migrate_v3_to_v4(conn)
+            conn.execute(f"PRAGMA user_version = {CURRENT_DB_VERSION}")
+        elif version == 3:
+            _migrate_v3_to_v4(conn)
             conn.execute(f"PRAGMA user_version = {CURRENT_DB_VERSION}")
         elif version == CURRENT_DB_VERSION:
             pass
@@ -465,3 +497,76 @@ def db_stats() -> dict[str, Any]:
         "strategies_total": strategies_total,
         "backtests_total": backtests_total,
     }
+
+
+# ─── chat_sessions 表 ───────────────────────────────────────
+
+def chat_session_create(session_id: str, user: str, title: str, messages: list[dict]) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO chat_sessions (id, user, title, messages) VALUES (?, ?, ?, ?)",
+            (session_id, user, title, json.dumps(messages, ensure_ascii=False)),
+        )
+
+
+def chat_session_update(session_id: str, user: str,
+                        messages: list[dict] | None = None,
+                        title: str | None = None) -> bool:
+    """更新 messages 和/或 title；只有 user 匹配才更新。返回是否更新成功。"""
+    sets, params = [], []
+    if messages is not None:
+        sets.append("messages = ?")
+        params.append(json.dumps(messages, ensure_ascii=False))
+    if title is not None:
+        sets.append("title = ?")
+        params.append(title)
+    if not sets:
+        return False
+    sets.append("updated_at = datetime('now')")
+    params.extend([session_id, user])
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"UPDATE chat_sessions SET {', '.join(sets)} WHERE id = ? AND user = ?",
+            params,
+        )
+        return cur.rowcount > 0
+
+
+def chat_session_get(session_id: str, user: str) -> dict | None:
+    with get_conn() as conn:
+        r = conn.execute(
+            "SELECT id, user, title, messages, created_at, updated_at "
+            "FROM chat_sessions WHERE id = ? AND user = ?",
+            (session_id, user),
+        ).fetchone()
+    if not r:
+        return None
+    return {
+        "id": r["id"], "user": r["user"], "title": r["title"],
+        "messages": json.loads(r["messages"]),
+        "created_at": r["created_at"], "updated_at": r["updated_at"],
+    }
+
+
+def chat_session_list(user: str, limit: int = 50) -> list[dict]:
+    """按更新时间倒序，只返回元数据（不带 messages）。"""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT id, title, created_at, updated_at FROM chat_sessions "
+            "WHERE user = ? ORDER BY updated_at DESC LIMIT ?",
+            (user, limit),
+        ).fetchall()
+    return [
+        {"id": r["id"], "title": r["title"],
+         "created_at": r["created_at"], "updated_at": r["updated_at"]}
+        for r in rows
+    ]
+
+
+def chat_session_delete(session_id: str, user: str) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM chat_sessions WHERE id = ? AND user = ?",
+            (session_id, user),
+        )
+        return cur.rowcount > 0
