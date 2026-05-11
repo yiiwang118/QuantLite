@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# 项目本地状态（含秘密、数据库、缓存）
+.env
+users.yaml
+quant.db
+quant.db-shm
+quant.db-wal
+data_cache/
+*.log
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

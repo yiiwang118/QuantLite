@@ -1,0 +1,15 @@
+# Quant Lite - 用户配置（HTTP Basic Auth）
+# 复制为 users.yaml 后修改；users.yaml 进 .gitignore
+#
+# 加密码哈希：
+#   python -c "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
+
+users:
+  - username: admin
+    # 默认密码 "changeme"，上线前一定要换！
+    password_hash: "$2b$12$KIXGmNQU3qWYj0eK9qXUXuV3jRgN8Q8PqTzQZQ7xqDBzFvBxxxxxx"
+    display_name: "Admin"
+
+  - username: alice
+    password_hash: "$2b$12$replace_with_real_hash"
+    display_name: "Alice"

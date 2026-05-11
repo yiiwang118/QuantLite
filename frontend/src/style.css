@@ -1,0 +1,139 @@
+/* ─────────────────────────────────────────────────────────
+   设计令牌（CSS 变量）—— 单一 dark 主题
+   ────────────────────────────────────────────────────────── */
+
+:root {
+  /* 页面背景 + 网状渐变 */
+  --bg-base: #08091a;
+  --bg-mesh-1: rgba(124, 58, 237, 0.12);
+  --bg-mesh-2: rgba(6, 182, 212, 0.10);
+  --bg-mesh-3: rgba(236, 72, 153, 0.05);
+
+  /* 卡片背景 */
+  --card-bg: #0e1124;
+  --card-elev-bg: #141833;
+
+  /* 卡片内层级表面 */
+  --surface-1: rgba(255, 255, 255, 0.025);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-3: rgba(255, 255, 255, 0.08);
+  --surface-deep: rgba(0, 0, 0, 0.35);
+
+  /* 文字 */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-on-deep: #e2e8f0;
+
+  /* 边框 */
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --border-accent: rgba(124, 58, 237, 0.30);
+
+  /* 紫色品牌 */
+  --brand: #7c3aed;
+  --accent: #a78bfa;
+  --accent-bg-soft: rgba(167, 139, 250, 0.14);
+  --accent-bg-hover: rgba(167, 139, 250, 0.20);
+  --user-bubble-bg: linear-gradient(135deg, rgba(124, 58, 237, 0.28), rgba(124, 58, 237, 0.14));
+  --user-bubble-border: rgba(124, 58, 237, 0.32);
+
+  /* 语义色 */
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --danger-bg: rgba(239, 68, 68, 0.10);
+  --warning-bg: rgba(245, 158, 11, 0.12);
+
+  /* 图表（ECharts） */
+  --chart-axis-label: #94a3b8;
+  --chart-axis-line: rgba(255, 255, 255, 0.10);
+  --chart-split-line: rgba(255, 255, 255, 0.05);
+  --chart-tooltip-bg: rgba(20, 24, 51, 0.95);
+  --chart-tooltip-text: #f8fafc;
+  --chart-tooltip-border: rgba(255, 255, 255, 0.10);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  letter-spacing: -0.005em;
+}
+
+body {
+  background:
+    radial-gradient(1100px 600px at 0% -10%, var(--bg-mesh-1) 0%, transparent 60%),
+    radial-gradient(800px 600px at 100% 110%, var(--bg-mesh-2) 0%, transparent 60%),
+    radial-gradient(600px 400px at 80% 0%, var(--bg-mesh-3) 0%, transparent 70%),
+    var(--bg-base);
+  background-attachment: fixed;
+  color: var(--text-primary);
+}
+
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.20);
+  background-clip: content-box;
+}
+
+.mono, .num {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.up { color: #ef4444; }
+.down { color: #10b981; }
+.up-us { color: #10b981; }
+.down-us { color: #ef4444; }
+
+.muted { color: var(--text-muted); }
+
+.gradient-text {
+  background: linear-gradient(135deg, #f8fafc 0%, #a78bfa 60%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dot-live {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.n-card { backdrop-filter: blur(12px); }
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from, .fade-leave-to { opacity: 0; }
