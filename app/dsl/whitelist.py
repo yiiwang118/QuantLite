@@ -74,7 +74,7 @@ WINDOW_OPS: Final[dict[str, int]] = {
 # ─── 策略字段白名单 ──────────────────────────────────────────
 
 STRATEGY_FIELDS: Final[frozenset[str]] = frozenset({
-    "universe", "signal", "select", "rebalance", "start", "end",
+    "universe", "signal", "select", "rebalance", "start", "end", "cost",
 })
 
 STRATEGY_REQUIRED: Final[frozenset[str]] = frozenset({
@@ -92,7 +92,7 @@ REBALANCE_FREQS: Final[frozenset[str]] = frozenset({
 # ─── 关键字（不能用作 factor / 字段名）────────────────────────
 
 KEYWORDS: Final[frozenset[str]] = frozenset({
-    "factor", "strategy", "top",
+    "factor", "strategy", "top", "bottom",
 })
 
 

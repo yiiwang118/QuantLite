@@ -278,11 +278,15 @@ class Parser:
                 kw.line, kw.col,
             )
 
+        # select 解析后返回 (top_n, bottom_n) tuple
+        top_n, bottom_n = fields["select"]
         return Strategy(
             universe=fields["universe"],
             signal=signal,
-            top_n=fields["select"],
+            top_n=top_n,
+            bottom_n=bottom_n,
             rebalance=fields["rebalance"],
+            cost=fields.get("cost", 0.0),
             start=fields.get("start"),
             end=fields.get("end"),
             line=kw.line,
@@ -305,20 +309,52 @@ class Parser:
             return self.expect(TokType.IDENT, "signal 期望 factor 名").value
 
         if key == "select":
-            # "top" NUMBER
+            # "top" NUMBER ("bottom" NUMBER)?
+            #   long-only:   top 3
+            #   long-short:  top 3 bottom 3
             self.expect_ident("top")
-            n_tok = self.expect(TokType.NUMBER, "select: top 后期望数字")
+            top_tok = self.expect(TokType.NUMBER, "select: top 后期望数字")
             try:
-                n = int(float(n_tok.value))
+                top_n = int(float(top_tok.value))
             except ValueError:
-                raise DSLError(f"无法解析数字 {n_tok.value!r}",
-                               n_tok.line, n_tok.col)
-            if n <= 0 or float(n_tok.value) != n:
+                raise DSLError(f"无法解析数字 {top_tok.value!r}",
+                               top_tok.line, top_tok.col)
+            if top_n <= 0 or float(top_tok.value) != top_n:
                 raise DSLError(
-                    f"select: top N 中 N 必须是正整数，实际 {n_tok.value}",
-                    n_tok.line, n_tok.col,
+                    f"select: top N 中 N 必须是正整数，实际 {top_tok.value}",
+                    top_tok.line, top_tok.col,
                 )
-            return n
+            bottom_n = 0
+            nxt = self.peek()
+            if nxt.type == TokType.IDENT and nxt.value == "bottom":
+                self.advance()
+                bot_tok = self.expect(TokType.NUMBER, "select: bottom 后期望数字")
+                try:
+                    bottom_n = int(float(bot_tok.value))
+                except ValueError:
+                    raise DSLError(f"无法解析数字 {bot_tok.value!r}",
+                                   bot_tok.line, bot_tok.col)
+                if bottom_n <= 0 or float(bot_tok.value) != bottom_n:
+                    raise DSLError(
+                        f"select: bottom M 中 M 必须是正整数，实际 {bot_tok.value}",
+                        bot_tok.line, bot_tok.col,
+                    )
+            return (top_n, bottom_n)
+
+        if key == "cost":
+            # 单边交易成本：0 <= cost < 0.5（半个百分点以上明显不合理）
+            c_tok = self.expect(TokType.NUMBER, "cost 期望数字（如 0.001 = 10 bps）")
+            try:
+                c = float(c_tok.value)
+            except ValueError:
+                raise DSLError(f"无法解析数字 {c_tok.value!r}",
+                               c_tok.line, c_tok.col)
+            if c < 0 or c >= 0.5:
+                raise DSLError(
+                    f"cost 必须在 [0, 0.5) 范围内（推荐 0.0005 ~ 0.002），实际 {c}",
+                    c_tok.line, c_tok.col,
+                )
+            return c
 
         if key == "rebalance":
             v_tok = self.expect(TokType.IDENT, "rebalance 期望标识符")

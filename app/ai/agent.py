@@ -49,10 +49,12 @@ def _system_prompt() -> str:
 ```
 factor IDENT = expr            # 定义因子
 strategy {{
-    universe:  IDENT:IDENT     # cn:sample | cn:hs50 | us:sample | us:sp50
+    universe:  IDENT:IDENT     # cn:sample | cn:hs50 | cn:csi300 | us:sample | us:sp50 | us:nasdaq100
     signal:    IDENT
-    select:    top NUMBER
+    select:    top NUMBER                       # 仅多头：选信号 top N 等权
+    # 或：   top NUMBER bottom NUMBER             # 多空：多 top N + 空 bottom M（market-neutral）
     rebalance: daily | weekly | monthly
+    cost:      NUMBER          # 可选，单边交易成本（如 0.001 = 10 bps）。默认 0
     start:     YYYY-MM-DD      # 可选
     end:       YYYY-MM-DD      # 可选
 }}
@@ -84,7 +86,9 @@ expr = NUMBER | IDENT | -expr | expr (+|-|*|/) expr | OPERATOR(arg, ...)
 - 字段/算子只能用白名单里的
 - 窗口必须是**非负整数常量**（5、20、60），不能负数/小数/变量
 - factor 先定义后引用；signal 必须是已定义的 factor
-- universe 只能是 cn:sample / cn:hs50 / us:sample / us:sp50
+- universe 用 `list_universes` 查最新列表
+- 多空策略（`top N bottom M`）：多头持信号最高的 N 只，空头做信号最低的 M 只，组合收益 = 多头收益 - 空头收益
+- 交易成本（cost）：每次调仓按 turnover 双边扣除。**真实回测建议用 0.001（10 bps）左右**；用户没特别说就默认带上 cost: 0.001
 
 # 工具
 
@@ -99,7 +103,7 @@ expr = NUMBER | IDENT | -expr | expr (+|-|*|/) expr | OPERATOR(arg, ...)
 1. 用户给一句话需求 → 你写一份 DSL
 2. 调用 `validate_dsl` 确认无语法错误
 3. 如果用户要求跑回测，调用 `run_backtest`
-4. 用中文总结结果：策略 cum_return X%、夏普 Y、最大回撤 Z%、vs 基准超额 W pp
+4. 用中文总结结果：策略 cum_return X%、夏普 Y、最大回撤 Z%、vs 基准超额 W pp；如果带 cost，说明扣除了多少成本
 
 # 重要
 

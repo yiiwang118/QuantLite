@@ -189,7 +189,9 @@ export interface BacktestMetrics {
 export interface BacktestParams {
   universe: string
   top_n: number
+  bottom_n?: number
   rebalance: string
+  cost?: number
   start: string | null
   end: string | null
 }
@@ -209,6 +211,7 @@ export interface BacktestResp {
   duration_ms: number
   rows_used: number
   triggered_by: string
+  total_cost?: number
 }
 
 export interface ValidateResp {

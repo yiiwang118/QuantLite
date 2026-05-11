@@ -2,6 +2,15 @@
 
 按 phase 倒序排列。
 
+## Phase 7：扩股票池 + 交易成本 + 多空
+
+- **新 universe**：`cn:csi300`（沪深 300 全成分，akshare 实时拉）+ `us:nasdaq100`（100 只主流科技/消费/医药/工业）
+- **成本模型**：`cost: NUMBER` DSL 字段，每次 rebalance 按 turnover 双边扣 `turnover_one_way * cost * 2`；`total_cost` 单独返回累计拖累
+- **Long-short**：`select: top N bottom M` 语法，多头 top N + 空头 bottom M，PnL = long_ret − short_ret，benchmark 始终 long-only
+- **holdings_history 标识**：多头 `L:cn/600519`，空头 `S:cn/000001`
+- **前端**：回测结果区头部新增策略类型 + 成本拖累标识
+- **AI 同步**：LiteAI system prompt 更新，知道新 universe、long-short、cost 字段，默认推荐 `cost: 0.001`
+
 ## Phase 6：UI 升级 + 主题系统 + 会话保存
 
 - **JS 直写 CSS vars 主题切换**：放弃 `:root.dark/.light` class cascade，改为 `documentElement.style.setProperty` 直写 inline。绕过 Naive UI `<NGlobalStyle />` 注入冲突

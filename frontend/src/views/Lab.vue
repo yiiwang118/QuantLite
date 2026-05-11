@@ -714,6 +714,29 @@ onActivated(() => {
 
       <!-- 回测结果（出现在 agent 跑完或手动跑完后）-->
       <div v-if="result" class="result-section">
+        <!-- 策略类型 + 成本 摘要条 -->
+        <NCard size="small" :bordered="false" style="background: var(--surface-1); margin-bottom: 4px">
+          <NSpace align="center" :size="14" justify="space-between">
+            <NSpace align="center" :size="14">
+              <NTag size="small" :bordered="false" :type="(result.params.bottom_n || 0) > 0 ? 'info' : 'default'">
+                {{ (result.params.bottom_n || 0) > 0
+                   ? `多空 top ${result.params.top_n} / bottom ${result.params.bottom_n}`
+                   : `仅多头 top ${result.params.top_n}` }}
+              </NTag>
+              <span class="muted mono" style="font-size: 12px">
+                {{ result.params.universe }} · {{ result.params.rebalance }} ·
+                {{ result.nav_curve.length }} 日
+              </span>
+              <span v-if="(result.params.cost || 0) > 0" class="muted mono" style="font-size: 12px">
+                · 成本 {{ ((result.params.cost || 0) * 10000).toFixed(1) }} bps/单边
+              </span>
+            </NSpace>
+            <span v-if="(result.total_cost || 0) > 0" class="muted mono" style="font-size: 12px">
+              累计成本拖累 −{{ ((result.total_cost || 0) * 100).toFixed(2) }}%
+            </span>
+          </NSpace>
+        </NCard>
+
         <NGrid :cols="6" :x-gap="10" :y-gap="10" responsive="screen" item-responsive>
           <NGi span="6 s:3 m:2">
             <MetricCard label="累计收益" :value="result.metrics.cum_return"

@@ -74,6 +74,8 @@ async def post_backtest(
         "rebalance": result.rebalance,
         "start": result.start,
         "end": result.end,
+        "bottom_n": result.bottom_n,
+        "cost": result.cost,
     }
 
     backtest_id: int | None = None
@@ -114,6 +116,7 @@ async def post_backtest(
         "duration_ms": result.duration_ms,
         "rows_used": result.rows_used,
         "triggered_by": user,
+        "total_cost": result.total_cost,
     }
 
 
@@ -138,6 +141,8 @@ def validate_dsl(req: ValidateRequest, _user: str = Depends(get_current_user)):
                 "universe": program.strategy.universe,
                 "signal": program.strategy.signal,
                 "top_n": program.strategy.top_n,
+                "bottom_n": program.strategy.bottom_n,
+                "cost": program.strategy.cost,
                 "rebalance": program.strategy.rebalance,
                 "start": program.strategy.start.isoformat() if program.strategy.start else None,
                 "end": program.strategy.end.isoformat() if program.strategy.end else None,

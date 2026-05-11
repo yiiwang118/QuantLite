@@ -82,8 +82,10 @@ class Strategy:
     """strategy { ... } 块。"""
     universe: str             # 如 "cn:sample"
     signal: str               # 引用的 factor 名
-    top_n: int                # select: top N
+    top_n: int                # 多头数量：select: top N（向下兼容字段名）
     rebalance: str            # daily / weekly / monthly
+    bottom_n: int = 0         # 空头数量：select: ... bottom M（0 = 仅多头）
+    cost: float = 0.0         # 单边交易成本（如 0.001 = 10 bps），默认 0
     start: date | None = None
     end: date | None = None
     line: int = 0

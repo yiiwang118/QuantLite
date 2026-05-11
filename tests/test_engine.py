@@ -183,7 +183,7 @@ def test_top_n_holdings_recorded():
     result = run(p, df)
     # 每天都选 close 最大的 2 只 → B, A
     for d, holdings in result.holdings_history.items():
-        assert set(holdings) == {"cn/B", "cn/A"}
+        assert set(holdings) == {"L:cn/B", "L:cn/A"}
 
 
 def test_no_holdings_when_all_signals_null():
