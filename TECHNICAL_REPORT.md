@@ -1089,7 +1089,7 @@ AppLayout 768px 以下 sider 变 drawer + hamburger 按钮 + 遮罩；所有 dat
 
 ### 12.2 微信小程序（已规划）
 
-`docs/06-miniprogram.md` 锁定：uni-app + Vue 3，复用现有 REST 后端，SSE 通过新加 `/api/ai/chat/ws` WebSocket endpoint 适配。**等启动信号**。
+`docs/06-miniprogram.md` 锁定：uni-app + Vue 3，**V1 与 web 端全功能对齐**（8 个页面全部覆盖，不是精简版），复用现有 REST 后端，SSE 通过新加 `/api/ai/chat/ws` WebSocket endpoint 适配。预估 ~19 天专人开发 + 0.5 天后端 WS endpoint。**等启动信号**。
 
 ### 12.3 潜在方向
 

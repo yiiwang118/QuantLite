@@ -9,7 +9,7 @@
 - **Lab.vue 移动端**：chat-thread 65vh→55vh，气泡 max-width 92%，字号/padding 收紧，detail-row 限高 140px
 - **Settings 移动端**：model-row-head 改纵向布局，input 占满宽
 - **全局 form-row**：< 768px 自动改纵向，label 不占固定宽度
-- **小程序 docs**：`docs/06-miniprogram.md` 锁定 uni-app + Vue 3 技术栈，V1 范围（登录/聊天/策略/回测），SSE → WebSocket 适配方案，分阶段实施，**待启动信号**
+- **小程序 docs**：`docs/06-miniprogram.md` 锁定 uni-app + Vue 3 技术栈，**V1 与 web 端全功能对齐**（8 个页面），SSE → WebSocket 适配方案，7 阶段实施约 19 天，**待启动信号**
 
 ## Phase 7：扩股票池 + 交易成本 + 多空
 
